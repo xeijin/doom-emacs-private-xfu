@@ -1,4 +1,4 @@
-* Blogs :elfeed:
+* Feeds :elfeed:
   :PROPERTIES:
   :ID:       FDB20BAB-9C5D-4A12-A7B1-8EF067B3969E
   :END:
@@ -13,10 +13,6 @@
 *** [[http://planet.emacsen.org/atom.xml][Planet Emacsen]]
     :PROPERTIES:
     :ID:       7A18DBE9-F56A-459E-9110-4AA1C054CAB9
-    :END:
-*** [[http://irreal.org/blog/?feed=rss2][Irreal]]
-    :PROPERTIES:
-    :ID:       9930C3CB-D52C-495E-977D-F7D6784DD2FB
     :END:
 *** [[https://www.reddit.com/r/emacs/.rss][r/M-x Emacs]]
     :PROPERTIES:
@@ -106,13 +102,8 @@
    :PROPERTIES:
    :ID:       12968406-5EC2-4220-938F-670FD2352FF4
    :END:
-*** TODO [[http://jef.works/feed.xml][Jean Fan's blog]]
+*** [[http://jef.works/feed.xml][Jean Fan's blog]]
     :PROPERTIES:
     :ID:       82C9B16B-143B-4BDF-AB8B-ED55F86B3D56
     :END:
-    :LOGBOOK:
-    - State "TODO"       from              [2018-01-11 Thu 14:50]
-    :END:
-
-    
-    
+** [[https://github.com/fuxialexander.private.atom?token=AH4FXLaKeFVMJpVAfT_b84of2HQCsADbks65VHCqwA==][Github]] :github:

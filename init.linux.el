@@ -2,11 +2,10 @@
 (doom! :feature
        eval
        (evil
-        ;; +everywhere
-        )
+        +everywhere)
        file-templates
-       lookup
-       ;; +devdocs
+       (lookup
+        +devdocs)
        snippets
        spellcheck
        (syntax-checker)
@@ -21,38 +20,35 @@
        doom
        doom-dashboard
        doom-modeline
+       evil-goggles
        hl-todo
        nav-flash
-       window-select
+       treemacs
        (popup
-        ;; +all
+        +all
         +defaults)
-       neotree
+       window-select
+
+       :emacs
+       dired
+       electric
+       eshell
+       term
+       ediff
+       imenu
 
        :tools
-       dired
+       editorconfig
        ein
-       electric-indent
-       eshell
        gist
-       imenu
-       ;; macos
-       make
        magit
-       ;; rgb
-       term
-       ;; reference
-       ;; upload
-       ;; (password-store +auth)
+       rotate-text
 
        :lang
        lsp
-       python
-       ;; cc-private
+       data
+       (python +lpy +conda)
        ess
-       ;; (latex
-       ;;  +latexmk
-       ;;  +skim)
        (org
         ;; +attach
         +babel
@@ -68,12 +64,8 @@
         )
        ;; data
        emacs-lisp
-       javascript
        markdown
        sh
-       (web +html)
-
-
        :config
        (default +snippets +evil-commands +bindings))
 
@@ -97,7 +89,7 @@
  doom-unicode-font (font-spec :family "Sarasa Mono SC" :size 11)
  doom-big-font (font-spec :family "SF Mono" :size 16)
  ovp-font "Iosevka"
- doom-theme 'doom-nord-light
+ doom-theme 'doom-city-lights
  doom-line-numbers-style nil
  +doom-modeline-buffer-file-name-style 'truncate-upto-project
  doom-neotree-enable-variable-pitch t
@@ -105,11 +97,11 @@
  doom-neotree-line-spacing 0
  doom-neotree-folder-size 1.0
  doom-neotree-chevron-size 0.6
- scroll-conservatively 0
+ ;; scroll-conservatively 0
  doom-line-numbers-visual-style t
- browse-url-browser-function 'xwidget-webkit-browse-url
+;browse-url-browser-function 'xwidget-webkit-browse-url
  indicate-buffer-boundaries nil
- frame-alpha-lower-limit 0
+;frame-alpha-lower-limit 0
  indicate-empty-lines nil
  which-key-idle-delay 0.3)
 
@@ -120,37 +112,18 @@
                               (assq 'truncation fringe-indicator-alist)
                               (delq (assq 'continuation fringe-indicator-alist)
                                     fringe-indicator-alist)))
-(defun *doom-dashboard-widget-banner ()
-  (mapc (lambda (line)
-          (insert (propertize (+doom-dashboard--center +doom-dashboard--width line)
-                              'face 'font-lock-comment-face) " ")
-          (insert "\n"))
-        '(" ,ggg,        gg    ,ggggggg,        ,gggg,        ,a8a,  ,ggg,          ,gg"
-          "dP''Y8b       88  ,dP''''''Y8b      d8' '8I       ,8' '8,dP'''Y8,      ,dP' "
-          "Yb, `88       88  d8'    a  Y8      88  ,dP       d8   8bYb,_  '8b,   d8'   "
-          " `'  88       88  88     'Y8P'   8888888P'        88   88 `''    Y8,,8P'    "
-          "     88aaaaaaa88  `8baaaa           88            88   88         Y88'      "
-          "     88'''''''88 ,d8P''''           88            Y8   8P        ,888b      "
-          "     88       88 d8'           ,aa,_88            `8, ,8'       d8' '8b,    "
-          "     88       88 Y8,          dP' '88P       8888  '8,8'      ,8P'    Y8,   "
-          "     88       Y8,`Yba,,_____, Yb,_,d88b,,_   `8b,  ,d8b,     d8'       'Yb, "
-          "     88       `Y8  `'Y8888888  'Y8P'  'Y88888  'Y88P' 'Y8  ,8P'          'Y8"
-          "                                                                            "
-          "                                                                            "
-          "                                 E M A C S                                  "
-          "                                                                            "
-          "                                                                            "
-          "                                                                            ")))
-
-(advice-add 'doom-dashboard-widget-banner :override #'*doom-dashboard-widget-banner)
 
 
 ;; * Config
+(defvar  +research-dir "/research/kevinyip10/xfu/"
+  "remote dir for research projects")
 (setq
+ trash-directory (concat +reference-dir ".Trash/")
  insert-directory-program "ls"
  user-mail-address "fuxialexander@gmail.com"
  user-full-name "Alexander Fu Xi"
  max-specpdl-size 10000
+ +magit-hub-features t
  +file-templates-dir "~/.doom.d/templates")
 
 ;; * Keys
@@ -163,4 +136,10 @@
  evil-shift-width 2
  evil-snipe-override-evil-repeat-keys nil
  evil-collection-company-use-tng nil
- evil-respect-visual-line-mode t)
+ evil-respect-visual-line-mode t
+ +evil-collection-disabled-list '(elfeed notmuch kotlin-mode simple dired helm ivy anaconda-mode))
+
+(def-package-hook! ivy-rich
+  :pre-init nil
+  :pre-config nil)
+

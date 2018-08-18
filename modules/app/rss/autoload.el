@@ -2,7 +2,7 @@
 (require 'avy)
 (require 'xwidget)
 
-;; * UI
+;; * workflow and layout
 ;;;###autoload
 (defun =rss ()
   "Activate (or switch to) `elfeed' in its workspace."
@@ -18,8 +18,8 @@
 ;;;###autoload
 (defun +rss/quit ()
   (interactive)
-  ;; (doom-kill-matching-buffers "^\\*elfeed")
-  ;; (dolist (file rmh-elfeed-org-files) (when-let* ((buf (get-file-buffer file))) (kill-buffer buf)))
+  (doom-kill-matching-buffers "^\\*elfeed")
+  (dolist (file rmh-elfeed-org-files) (when-let* ((buf (get-file-buffer file))) (kill-buffer buf)))
   (+workspace/delete "rss"))
 
 
@@ -30,11 +30,12 @@
   (let ((inhibit-read-only t)
         (inhibit-modification-hooks t))
     (setq-local truncate-lines nil)
-    (setq-local shr-width 85)
+    (setq-local shr-width 120)
     (setq-local line-spacing 0.3)
     (setq-local shr-current-font '(:family "charter" :height 1.2))
     (set-buffer-modified-p nil))
-  (visual-fill-column-mode))
+  (let ((visual-fill-column-width 120))
+    (visual-fill-column-mode)))
 
 ;;;###autoload
 (defun +rss/delete-pane ()
@@ -92,35 +93,10 @@
              unless (gethash url living-feeds)
              collect url)))
 
-;; ;;;###autoload
-;; (defun elfeed-send-to-bookend (url)
-;;   (let ((uri (concat "bookends:///?&beurl=" (url-hexify-string url))))
-;;     (start-process "elfeed-bookends" nil "open" "-g" uri)))
-
-;; ;;;###autoload
-;; (defun elfeed-search-send-to-bookend ()
-;;   (interactive)
-;;   (let ((entries (elfeed-search-selected)))
-;;     (cl-loop for entry in entries
-;;              do (elfeed-untag entry 'unread)
-;;              when (elfeed-entry-link entry)
-;;              do (elfeed-send-to-bookend it))
-;;     (mapc #'elfeed-search-update-entry entries)
-;;     (unless (use-region-p) (forward-line))))
-
-;; ;;;###autoload
-;; (defun elfeed-show-send-to-bookend ()
-;;   (interactive)
-;;   (let ((link (elfeed-entry-link elfeed-show-entry)))
-;;     (when link
-;;       (message "Sent to bookends: %s" link)
-;;       (elfeed-send-to-bookend link))))
-
 ;;;###autoload
 (defun +rss/elfeed-search-print-entry (entry)
   "Print ENTRY to the buffer."
-  (let* ((elfeed-goodies/wide-threshold 0.5)
-         (elfeed-goodies/tag-column-width 40)
+  (let* ((elfeed-goodies/tag-column-width 40)
          (elfeed-goodies/feed-source-column-width 30)
          (title (or (elfeed-meta entry :title) (elfeed-entry-title entry) ""))
          (title-faces (elfeed-search--faces (elfeed-entry-tags entry)))
@@ -144,12 +120,10 @@
                                                 elfeed-goodies/feed-source-column-width)
                        :left)))
 
-    (if (>= (window-width) (* (frame-width) elfeed-goodies/wide-threshold))
-        (progn
-          (insert (propertize feed-column 'face 'elfeed-search-feed-face) " ")
-          (insert (propertize tag-column 'face 'elfeed-search-tag-face) " ")
-          (insert (propertize title 'face title-faces 'kbd-help title)))
-      (insert (propertize title 'face title-faces 'kbd-help title)))))
+    (insert (propertize feed-column 'face 'elfeed-search-feed-face) " ")
+    (insert (propertize tag-column 'face 'elfeed-search-tag-face) " ")
+    (insert (propertize title 'face title-faces 'kbd-help title))
+    (setq-local line-spacing 0.5)))
 
 ;;;###autoload
 (defun +rss/elfeed-search--header-1 ()
@@ -224,7 +198,48 @@
       (setq elfeed-show-entry entry)
       (elfeed-show-refresh))))
 
-
+;; * elfeed-show UI
+;;;###autoload
+(defun +rss/elfeed-show-refresh--better-style ()
+  "Update the buffer to match the selected entry, using a mail-style."
+  (interactive)
+  (let* ((inhibit-read-only t)
+         (title (elfeed-entry-title elfeed-show-entry))
+         (date (seconds-to-time (elfeed-entry-date elfeed-show-entry)))
+         (author (elfeed-meta elfeed-show-entry :author))
+         (link (elfeed-entry-link elfeed-show-entry))
+         (tags (elfeed-entry-tags elfeed-show-entry))
+         (tagsstr (mapconcat #'symbol-name tags ", "))
+         (nicedate (format-time-string "%a, %e %b %Y %T %Z" date))
+         (content (elfeed-deref (elfeed-entry-content elfeed-show-entry)))
+         (type (elfeed-entry-content-type elfeed-show-entry))
+         (feed (elfeed-entry-feed elfeed-show-entry))
+         (feed-title (elfeed-feed-title feed))
+         (base (and feed (elfeed-compute-base (elfeed-feed-url feed)))))
+    (erase-buffer)
+    (insert "\n")
+    (insert (format "%s\n\n" (propertize title 'face 'elfeed-show-title-face)))
+    (insert (format "%s\t" (propertize feed-title 'face 'elfeed-show-feed-face)))
+    (when (and author elfeed-show-entry-author)
+      (insert (format "%s\n" (propertize author 'face 'elfeed-show-author-face))))
+    (insert (format "%s\n\n" (propertize nicedate 'face 'elfeed-show-misc-face)))
+    (when tags
+      (insert (format "%s\n"
+                      (propertize tagsstr 'face 'elfeed-show-tag-face))))
+    ;; (insert (propertize "Link: " 'face 'message-header-name))
+    ;; (elfeed-insert-link link link)
+    ;; (insert "\n")
+    (cl-loop for enclosure in (elfeed-entry-enclosures elfeed-show-entry)
+             do (insert (propertize "Enclosure: " 'face 'message-header-name))
+             do (elfeed-insert-link (car enclosure))
+             do (insert "\n"))
+    (insert "\n")
+    (if content
+        (if (eq type 'html)
+            (elfeed-insert-html content base)
+          (insert content))
+      (insert (propertize "(empty)\n" 'face 'italic)))
+    (goto-char (point-min))))
 
 ;; * ace-link and xwidget
 ;;;###autoload
@@ -319,3 +334,28 @@ XWIDGET instance, XWIDGET-EVENT-TYPE depends on the originating xwidget."
                #'avy--overlay-pre))))
     (ace-link--elfeed-action pt)))
 
+
+;; * Deprecated
+;; ;;;###autoload
+;; (defun elfeed-send-to-bookend (url)
+;;   (let ((uri (concat "bookends:///?&beurl=" (url-hexify-string url))))
+;;     (start-process "elfeed-bookends" nil "open" "-g" uri)))
+
+;; ;;;###autoload
+;; (defun elfeed-search-send-to-bookend ()
+;;   (interactive)
+;;   (let ((entries (elfeed-search-selected)))
+;;     (cl-loop for entry in entries
+;;              do (elfeed-untag entry 'unread)
+;;              when (elfeed-entry-link entry)
+;;              do (elfeed-send-to-bookend it))
+;;     (mapc #'elfeed-search-update-entry entries)
+;;     (unless (use-region-p) (forward-line))))
+
+;; ;;;###autoload
+;; (defun elfeed-show-send-to-bookend ()
+;;   (interactive)
+;;   (let ((link (elfeed-entry-link elfeed-show-entry)))
+;;     (when link
+;;       (message "Sent to bookends: %s" link)
+;;       (elfeed-send-to-bookend link))))

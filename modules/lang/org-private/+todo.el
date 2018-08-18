@@ -6,6 +6,7 @@
 
 (def-package! org-super-agenda
   :commands (org-super-agenda-mode)
+  :init (advice-add #'org-super-agenda-mode :around #'doom*shut-up)
   :config
   (setq org-super-agenda-groups
         '((:name "Log\n"
@@ -68,7 +69,7 @@ _;_ tag      _h_ headline      _c_ category     _r_ regexp     _d_ remove    "
     ("d" org-agenda-filter-remove-all)
     ("q" nil "cancel" :color blue))
 
-  (set! :popup "^\\*Org Agenda.*" '((slot . -1) (size . 120) (side . left)) '((select . t) (modeline . nil)))
+  (set-popup-rule! "^\\*Org Agenda.*" :slot -1 :size 120 :side 'left :select t)
   (after! evil-snipe
     (push 'org-agenda-mode evil-snipe-disabled-modes))
-  (set! :evil-state 'org-agenda-mode 'normal))
+  (set-evil-initial-state! 'org-agenda-mode 'normal))

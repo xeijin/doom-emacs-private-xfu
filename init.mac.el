@@ -1,5 +1,6 @@
 ;; * Modules
 (doom! :feature
+       ;; debugger
        eval
        (evil
         +everywhere)
@@ -9,7 +10,6 @@
        snippets
        spellcheck
        (syntax-checker +childframe)
-       version-control
        workspaces
 
        :completion
@@ -17,21 +17,27 @@
        (ivy +childframe)
 
        :ui
+       vc-gutter
        doom
        doom-dashboard
        doom-modeline
-       evil-goggles
        hl-todo
+       ;; fci
        nav-flash
-       neotree
+       evil-goggles
+       ;; neotree
+       treemacs
+       pretty-code
        (popup
         +all
         +defaults)
        window-select
-
+       :editor
+       rotate-text
        :emacs
+       vc
        dired
-       electric-indent
+       electric
        eshell
        term
        ediff
@@ -46,10 +52,9 @@
        magit
        rgb
        reference
-       rotate-text
        upload
        tmux
-       (password-store +auth)
+       password-store
 
        :lang
        lsp
@@ -58,17 +63,17 @@
        ;; cc-private
        ess
        (latex
-       +latexmk
-       +skim)
+        +latexmk
+        +skim)
        (org
         +attach
         +babel
-        +ipython +right-popup
         +capture
         +present)
        (org-private
         +todo
         +babel
+        +ipython +right-popup
         +capture
         +latex
         +export +style)
@@ -88,7 +93,6 @@
         +osxdict
         +synosaurus
         +langtool)
-       ;; calendar
 
        :config
        (default +snippets +evil-commands +bindings))
@@ -101,19 +105,19 @@
    (:eval (if (buffer-file-name)
               (abbreviate-file-name (buffer-file-name))
             "%b")))
- doom-font (font-spec :family "SF Mono" :size 12)
+ doom-font (font-spec :family "SF mono" :size 10)
  doom-variable-pitch-font
  (font-spec
   :family "SF Compact Display"
-  :size 14
+  :size 12
   :width 'extra-condensed
   :weight 'normal
   :slant 'normal
   :registry "iso10646-1")
- doom-unicode-font (font-spec :family "Sarasa Mono SC" :size 11)
- doom-big-font (font-spec :family "SF Mono" :size 16)
- ovp-font "Iosevka"
- doom-theme 'doom-nord-light
+ doom-unicode-font (font-spec :family "SF Mono" :size 10)
+ doom-big-font (font-spec :family "SF Mono" :size 12)
+ ovp-font "Sarasa Mono SC"
+ doom-theme 'doom-nord
  doom-line-numbers-style nil
  +doom-modeline-buffer-file-name-style 'truncate-upto-project
  doom-neotree-enable-variable-pitch t
@@ -121,30 +125,37 @@
  doom-neotree-line-spacing 0
  doom-neotree-folder-size 1.0
  doom-neotree-chevron-size 0.6
- scroll-conservatively 0
+ ;; scroll-conservatively 0
  doom-line-numbers-visual-style t
  browse-url-browser-function 'xwidget-webkit-browse-url
+ org-bullets-bullet-list '("◉")
  indicate-buffer-boundaries nil
  frame-alpha-lower-limit 0
  indicate-empty-lines nil
+ pdf-view-use-unicode-ligther nil
  which-key-idle-delay 0.3)
+
+;; (set-env! "PATH" "MANPATH"
+;;           "http_proxy" "socks_proxy" "https_proxy"
+;;           "all_proxy" "no_proxy")
 
 (or standard-display-table
     (setq standard-display-table (make-display-table)))
 (set-display-table-slot standard-display-table 0 ?\ )
 (setq-default fringe-indicator-alist (delq
-                              (assq 'truncation fringe-indicator-alist)
-                              (delq (assq 'continuation fringe-indicator-alist)
-                                    fringe-indicator-alist)))
+                                      (assq 'truncation fringe-indicator-alist)
+                                      (delq (assq 'continuation fringe-indicator-alist)
+                                            fringe-indicator-alist)))
 
 ;; * Mac-specific
 (if (string-match-p "NS" (emacs-version))
     (progn
       (setq
-       ns-alternate-modifier 'meta
-       ns-command-modifier 'super)
+       ns-use-thin-smoothing t
+       ns-alternate-modifier 'super
+       ns-command-modifier 'meta)
       (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
-      (add-to-list 'default-frame-alist '(ns-appearance . light)))
+      (add-to-list 'default-frame-alist '(ns-appearance . dark)))
   (setq mac-command-modifier 'super
         mac-option-modifier 'meta
         mac-pass-command-to-system nil))
@@ -167,8 +178,11 @@
  evil-shift-width 2
  evil-snipe-override-evil-repeat-keys nil
  evil-collection-company-use-tng nil
- evil-respect-visual-line-mode t)
+ evil-respect-visual-line-mode t
+ +magit-hub-features t
+ +evil-collection-disabled-list '(elfeed notmuch kotlin-mode simple dired helm ivy anaconda-mode outline))
+
+;; * Hacks
 (def-package-hook! ivy-rich
   :pre-init nil
   :pre-config nil)
-

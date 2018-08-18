@@ -92,3 +92,21 @@ with `org-cycle')."
            (unless (outline-invisible-p (line-end-position))
              (org-cycle-hide-drawers 'subtree))
            t))))
+
+;;;###autoload
+(defun +org-private*evil-org-open-below (count)
+  "Clever insertion of org item.
+Argument COUNT number of lines to insert.
+The behavior in items and tables can be controlled using ‘evil-org-special-o/O’.
+Passing in any prefix argument, executes the command without special behavior."
+  (interactive "P")
+  (cond ((and (memq 'table-row evil-org-special-o/O) (org-at-table-p))
+         (org-table-insert-row '(4))
+         (evil-insert nil))
+        ((and (memq 'item evil-org-special-o/O) (org-at-item-p)
+              (progn (org-end-of-item)
+                     (backward-char 1)
+                     (evil-append nil)
+                     (org-insert-item (org-at-item-checkbox-p))))
+         (evil-insert nil))
+        ((evil-open-below count))))

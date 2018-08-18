@@ -1,6 +1,6 @@
 ;;; tools/reference/config.el -*- lexical-binding: t; -*-
 
-(def-package! org-ref :load-path "~/Source/playground/org-ref"
+(def-package! org-ref
   :commands (org-ref-bibtex-next-entry
              org-ref-bibtex-previous-entry
              doi-utils-get-bibtex-entry-pdf
@@ -18,163 +18,90 @@
              isbn-to-bibtex
              pubmed-insert-bibtex-from-pmid)
   :init
-  (defvar org-ref-ivy-cite-actions
-    '(
-      ("b" ivy-bibtex-show-entry "Open entry")
-      ("p" ivy-bibtex-open-pdf "Open pdf")
-      ("n" ivy-bibtex-edit-notes "Open notes")
-      ("u" ivy-bibtex-open-url-or-doi "Open url or doi")
-      ("U" org-ref-ivy-bibtex-get-update-for-entry "Update entry from doi")
-      ("P" org-ref-ivy-bibtex-get-pdf-for-entry "Update PDF for entry")
-      ("SPC" ivy-bibtex-quicklook "Quick look")
-      ("k" org-ref-ivy-set-keywords "Add keywords")
-      ("e" org-ref-ivy-bibtex-email-entry "Email entry")
-      ("f" org-ref-ivy-bibtex-insert-formatted-citation "Insert formatted citation")
-      ("F" org-ref-ivy-bibtex-copy-formatted-citation "Copy formatted citation"))
-    "List of additional actions for `org-ref-ivy-insert-cite-link'.
-The default action being to insert a citation.")
+  (when (featurep! :completion helm)
+    (setq org-ref-completion-library 'org-ref-helm-bibtex))
+  (when (featurep! :completion ivy)
+    (setq org-ref-completion-library 'org-ref-ivy-cite))
 
-  (setq org-ref-completion-library 'org-ref-ivy-cite
-        doi-utils-pdf-url-functions (list
-                                     ;; 'aps-pdf-url
-                                     'biorxiv-pdf-url
-                                     'science-pdf-url
-                                     'nature-pdf-url
-                                     'pnas-pdf-url
-                                     'oup-pdf-url
-                                     'bmc-pdf-url
-                                     'wiley-pdf-url
-                                     'springer-chapter-pdf-url
-                                     'springer-pdf-url
-                                     'jstor-pdf-url
-                                     'tandfonline-pdf-url
-                                     'sage-pdf-url
-                                     ;; 'acs-pdf-url-1
-                                     ;; 'acs-pdf-url-2
-                                     ;; 'iop-pdf-url
-                                     ;; 'aip-pdf-url
-                                     'science-direct-pdf-url
-                                     'linkinghub-elsevier-pdf-url
-                                     ;; 'ecs-pdf-url
-                                     ;; 'ecst-pdf-url
-                                     ;; 'rsc-pdf-url
-                                     ;; 'jneurosci-pdf-url
-                                     'ieee-pdf-url
-                                     'ieee2-pdf-url
-                                     'ieee3-pdf-url
-                                     'acm-pdf-url
-                                     ;; 'osa-pdf-url
-                                     'asme-biomechanical-pdf-url
-                                     ;; 'generic-full-pdf-url
-                                     'generic-as-get-pdf-url))
   :config
-  (def-package! ivy-bibtex
-    :config
-    (ivy-bibtex-ivify-action bibtex-completion-quicklook ivy-bibtex-quicklook)
-    (setq
-     bibtex-completion-additional-search-fields '("journal")
-     bibtex-completion-pdf-symbol "@"
-     bibtex-completion-notes-symbol "#"
-     bibtex-completion-display-formats '((t . "${=has-pdf=:1}${=has-note=:1} ${author:20} ${journal:10} ${year:4} ${title:*} ${=type=:3}")))
-    (setq ivy-bibtex-default-action 'ivy-bibtex-insert-key)
-    (ivy-add-actions 'ivy-bibtex '(("SPC" ivy-bibtex-quicklook "Quick look")))
-    (setq bibtex-completion-format-citation-functions
-          '((org-mode . bibtex-completion-format-citation-pandoc-citeproc)
-            (default . bibtex-completion-format-citation-default))
-          bibtex-completion-bibliography "~/Dropbox/org/reference/Bibliography.bib"
-          bibtex-completion-library-path "~/Dropbox/org/reference/pdf/"
-          bibtex-completion-notes-path "~/Dropbox/org/ref.org"
-          bibtex-completion-pdf-field "file"
-          bibtex-completion-pdf-open-function (lambda (fpath) (start-process "open" "*open*" "open" fpath))))
-  (setq bibtex-dialect 'BibTeX
-        org-ref-clean-bibtex-entry-hook '(org-ref-bibtex-format-url-if-doi
-                                          orcb-key-comma
-                                          org-ref-replace-nonascii
-                                          orcb-&
-                                          orcb-%
-                                          org-ref-title-case-article
-                                          orcb-clean-year
-                                          +reference*org-ref-key
-                                          ;; orcb-key
-                                          orcb-clean-doi
-                                          orcb-clean-pages
-                                          orcb-check-journal
-                                          org-ref-sort-bibtex-entry)
-        org-ref-default-bibliography '("~/Dropbox/org/reference/Bibliography.bib")
-        org-ref-bibliography-notes "~/Dropbox/org/ref.org"
-        org-ref-pdf-directory "~/Dropbox/org/reference/pdf/"
-        org-ref-get-pdf-filename-function (lambda (key) (car (bibtex-completion-find-pdf key)))
-        org-ref-notes-function (lambda (thekey)
-                                 (let* ((results (org-ref-get-bibtex-key-and-file thekey))
-                                        (key (car results))
-                                        (bibfile (cdr results)))
-
-                                   (save-excursion
-                                     (with-temp-buffer
-                                       (insert-file-contents bibfile)
-                                       (bibtex-set-dialect (parsebib-find-bibtex-dialect) t)
-                                       (bibtex-search-entry key)
-                                       (org-ref-open-bibtex-notes)))))
-        org-ref-create-notes-hook '((lambda ()
-                                      (org-narrow-to-subtree)
-                                      (insert (format "cite:%s\n" (org-entry-get (point) "CUSTOM_ID")))))
-        org-ref-note-title-format "* TODO %t
+  (setq
+    orhc-bibtex-cache-file (concat doom-cache-dir "org-ref.cache")
+    org-ref-get-pdf-filename-function
+    (lambda (key) (car (bibtex-completion-find-pdf key)))
+    org-ref-notes-function
+    (lambda (thekey)
+      (let* ((results (org-ref-get-bibtex-key-and-file thekey))
+             (key (car results))
+             (bibfile (cdr results)))
+        (save-excursion
+          (with-temp-buffer
+            (insert-file-contents bibfile)
+            (bibtex-set-dialect (parsebib-find-bibtex-dialect) t)
+            (bibtex-search-entry key)
+            (org-ref-open-bibtex-notes)))))
+    org-ref-create-notes-hook
+    '((lambda ()
+        (org-narrow-to-subtree)
+        (insert (format "cite:%s\n" (org-entry-get (point) "CUSTOM_ID")))))
+    org-ref-note-title-format "* TODO %t
  :PROPERTIES:
   :CUSTOM_ID: %k
  :END:
 ")
-
-  (defhydra org-ref-cite-hydra (:color blue :hint nil)
-    "
-_p_: Open pdf     _w_: WOS          _g_: Google Scholar _K_: Copy citation to clipboard
-_u_: Open url     _r_: WOS related  _P_: Pubmed         _k_: Copy key to clipboard
-_n_: Open notes   _c_: WOS citing   _C_: Crossref       _f_: Copy formatted entry
-_o_: Open entry   _e_: Email entry  ^ ^                 _q_: quit
-"
-    ("o" org-ref-open-citation-at-point)
-    ("p" org-ref-open-pdf-at-point)
-    ("n" org-ref-open-notes-at-point)
-    ("u" org-ref-open-url-at-point)
-    ("w" org-ref-wos-at-point)
-    ("r" org-ref-wos-related-at-point)
-    ("c" org-ref-wos-citing-at-point)
-    ("g" org-ref-google-scholar-at-point)
-    ("P" org-ref-pubmed-at-point)
-    ("C" org-ref-crossref-at-point)
-    ("K" org-ref-copy-entry-as-summary)
-    ("k" (progn
-           (kill-new
-            (car (org-ref-get-bibtex-key-and-file)))))
-    ("f" (kill-new
-          (bibtex-completion-apa-format-reference (org-ref-get-bibtex-key-under-cursor))))
-    ("e" (kill-new (save-excursion
-                     (org-ref-open-citation-at-point)
-                     (org-ref-email-bibtex-entry))))
-    ("q" nil))
-
-  (ivy-set-actions 'org-ref-ivy-insert-cite-link org-ref-ivy-cite-actions)
-  (defun org-ref-ivy-insert-cite-link (&optional arg)
-    "Ivy function for interacting with bibtex.
-Uses `org-ref-find-bibliography' for bibtex sources, unless a
-prefix ARG is used, which uses `org-ref-default-bibliography'."
-    (interactive "P")
-    ;; (setq org-ref-bibtex-files (if arg org-ref-default-bibliography (org-ref-find-bibliography)))
-    (when arg (bibtex-completion-clear-cache))
-    (bibtex-completion-init)
-    ;; (setq org-ref-ivy-cite-marked-candidates '())
-    (ivy-read "Open: " (bibtex-completion-candidates)
-              :require-match t
-              :keymap org-ref-ivy-cite-keymap
-              :re-builder org-ref-ivy-cite-re-builder
-              :action 'or-ivy-bibtex-insert-cite
-              :caller 'org-ref-ivy-insert-cite-link))
-
-  (ivy-set-display-transformer 'org-ref-ivy-insert-cite-link 'ivy-bibtex-display-transformer)
-
-;; * advice
-  (advice-add 'org-ref-bib-citation :override #'+reference*org-ref-bib-citation)
-  (advice-add 'org-ref-email-bibtex-entry :override #'+reference*org-ref-email-bibtex-entry))
+  (when (eq +reference-field 'bioinfo)
+    (require 'org-ref-biorxiv)
+    (add-to-list 'doi-utils-pdf-url-functions 'oup-pdf-url)
+    (add-to-list 'doi-utils-pdf-url-functions 'bmc-pdf-url)
+    (add-to-list 'doi-utils-pdf-url-functions 'biorxiv-pdf-url))
+  (when IS-MAC
+    (setq doi-utils-pdf-url-functions
+          (delete 'generic-full-pdf-url doi-utils-pdf-url-functions))
+    (add-to-list 'doi-utils-pdf-url-functions 'generic-as-get-pdf-url t)))
 
 
+(def-package! bibtex
+  :defer t
+  :config
+  (setq bibtex-dialect 'biblatex
+        bibtex-align-at-equal-sign t
+        bibtex-text-indentation 20)
+  (map! :map bibtex-mode-map
+        [fill-paragraph] #'bibtex-fill-entry))
 
 
+(def-package! bibtex-completion
+  :defer t
+  :config
+  (setq bibtex-completion-format-citation-functions
+        '((org-mode . bibtex-completion-format-citation-pandoc-citeproc)
+          (latex-mode . bibtex-completion-format-citation-cite)
+          (default . bibtex-completion-format-citation-default))
+        bibtex-completion-pdf-field "file"
+        bibtex-completion-additional-search-fields '("journaltitle")
+        bibtex-completion-pdf-symbol "@"
+        bibtex-completion-notes-symbol "#"
+        bibtex-completion-display-formats '((t . "${=has-pdf=:1}${=has-note=:1} ${author:20} ${journaltitle:10} ${year:4} ${title:*} ${=type=:3}")))
+  (cond
+   (IS-MAC
+    (setq bibtex-completion-pdf-open-function
+          (lambda (fpath)
+            (async-start-process "open" "open" "open" fpath))))
+   (IS-LINUX
+    (setq bibtex-completion-pdf-open-function
+          (lambda (fpath)
+            (async-start-process "open-pdf" "/usr/bin/xdg-open" nil fpath))))))
+
+(def-package! ivy-bibtex
+  :when (featurep! :completion ivy)
+  :commands (ivy-bibtex)
+  :config
+  (setq ivy-bibtex-default-action 'ivy-bibtex-insert-key)
+  (add-to-list 'ivy-re-builders-alist '(ivy-bibtex . ivy--regex-plus))
+  (when IS-MAC
+    (ivy-bibtex-ivify-action bibtex-completion-quicklook ivy-bibtex-quicklook)
+    (ivy-add-actions 'ivy-bibtex '(("SPC" ivy-bibtex-quicklook "Quick look")))))
+
+
+(def-package! helm-bibtex
+  :when (featurep! :completion helm)
+  :commands helm-bibtex)

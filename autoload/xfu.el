@@ -6,6 +6,8 @@
          (counsel-org-goto))
         ((eq 'org-agenda-mode (buffer-local-value 'major-mode (current-buffer)))
          (counsel-org-goto-all))
+        ((eq 'latex-mode major-mode)
+         (reftex-toc))
         ((bound-and-true-p outline-minor-mode)
          (counsel-oi))
         (t (counsel-imenu))))
@@ -93,13 +95,18 @@
 ;;;###autoload
 (defun highlight-grammar ()
   (interactive)
-  (highlight-regexp "\\\w+s[\\\., ;]" 'hi-yellow))
+  (highlight-regexp " \\\w+s[\\\., ;]" 'hi-yellow)
+  (highlight-regexp " \\\w+ed[\\\., ;]" 'hi-yellow)
+  (highlight-regexp " \\(could\\|can\\|may\\|might\\|would\\|won't\\|cannot\\|can't \\) " 'hi-pink)
+  (highlight-regexp " \\(have been\\|have being\\|has being\\|has been\\|had been\\|had being\\) " 'hi-pink)
+  (highlight-regexp " \\(is\\|are\\|were\\|was\\|being\\|am\\|been\\) " 'hi-blue))
 
 ;;;; Org
 ;;;###autoload
 (defun org-agenda-show-daily (&optional arg)
   (interactive "P")
-  (org-agenda arg "a"))
+  (org-agenda arg "a")
+  (org-agenda-goto-today))
 
 ;;;###autoload
 (defun cfw:open-org-calendar-withoutkevin ()
@@ -277,28 +284,28 @@ the workspace and move to the next."
           (select-window ori)))))
 
 ;;;###autoload
-(defun counsel-faces ()
-    "Show a list of all defined faces.
+;; (defun counsel-faces ()
+;;     "Show a list of all defined faces.
 
-You can describe, customize, insert or kill the name or selected
-candidate."
-    (interactive)
-    (let* ((minibuffer-allow-text-properties t)
-           (max-length
-            (apply #'max
-                   (mapcar
-                    (lambda (x)
-                      (length (symbol-name x)))
-                    (face-list))))
-           (counsel--faces-fmt (format "%%-%ds  " max-length))
-           (ivy-format-function #'counsel--faces-format-function))
-      (ivy-read "%d Face: " (face-list)
-                :require-match t
-                :action #'counsel-faces-action-describe
-                :preselect (symbol-name (face-at-point t))
-                :history 'counsel-faces-history
-                :caller 'counsel-faces
-                :sort t)))
+;; You can describe, customize, insert or kill the name or selected
+;; candidate."
+;;     (interactive)
+;;     (let* ((minibuffer-allow-text-properties t)
+;;            (max-length
+;;             (apply #'max
+;;                    (mapcar
+;;                     (lambda (x)
+;;                       (length (symbol-name x)))
+;;                     (face-list))))
+;;            (counsel--faces-fmt (format "%%-%ds  " max-length))
+;;            (ivy-format-function #'counsel--faces-format-function))
+;;       (ivy-read "%d Face: " (face-list)
+;;                 :require-match t
+;;                 :action #'counsel-faces-action-describe
+;;                 :preselect (symbol-name (face-at-point t))
+;;                 :history 'counsel-faces-history
+;;                 :caller 'counsel-faces
+;;                 :sort t)))
 
 ;;;###autoload
 (defun +ivy-recentf-transformer (str)
@@ -306,17 +313,6 @@ candidate."
 started `counsel-recentf' from. Also uses `abbreviate-file-name'."
     (abbreviate-file-name str))
 
-;;;###autoload
-(defun +ivy-top ()
-    (interactive)
-    (let* ((output (shell-command-to-string ivy-top-command))
-           (lines (progn
-                    (string-match "TIME" output)
-                    (split-string (substring output (+ 1 (match-end 0))) "\n")))
-           (candidates (mapcar (lambda (line)
-                                 (list line (split-string line " " t)))
-                               lines)))
-      (ivy-read "process: " candidates)))
 
 ;;;###autoload
 (defun +ivy/reloading (cmd)
@@ -471,3 +467,143 @@ control which repositories are displayed."
   (if (and (stringp string) (string-match "^.*AnSiT.*\n.*\n.*AnSiT.*$" string))
       (replace-match "" t t string 0)
     string))
+
+;;;###autoload
+(defun title-case-region-or-line (@begin @end)
+  "Title case text between nearest brackets, or current line, or text selection.
+Capitalize first letter of each word, except words like {to, of, the, a, in, or, and, …}. If a word already contains cap letters such as HTTP, URL, they are left as is.
+
+When called in a elisp program, *begin *end are region boundaries.
+URL `http://ergoemacs.org/emacs/elisp_title_case_text.html'
+Version 2017-01-11"
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (let (
+           $p1
+           $p2
+           ($skipChars "^\"<>(){}[]“”‘’‹›«»「」『』【】〖〗《》〈〉〔〕"))
+       (progn
+         (skip-chars-backward $skipChars (line-beginning-position))
+         (setq $p1 (point))
+         (skip-chars-forward $skipChars (line-end-position))
+         (setq $p2 (point)))
+       (list $p1 $p2))))
+  (let* (
+         ($strPairs [
+                     [" A " " a "]
+                     [" And " " and "]
+                     [" At " " at "]
+                     [" As " " as "]
+                     [" By " " by "]
+                     [" Be " " be "]
+                     [" Into " " into "]
+                     [" In " " in "]
+                     [" Is " " is "]
+                     [" It " " it "]
+                     [" For " " for "]
+                     [" Of " " of "]
+                     [" Or " " or "]
+                     [" On " " on "]
+                     [" Via " " via "]
+                     [" The " " the "]
+                     [" That " " that "]
+                     [" To " " to "]
+                     [" Vs " " vs "]
+                     [" With " " with "]
+                     [" From " " from "]
+                     ["'S " "'s "]
+                     ["'T " "'t "]
+                     ]))
+    (save-excursion
+      (save-restriction
+        (narrow-to-region @begin @end)
+        (upcase-initials-region (point-min) (point-max))
+        (let ((case-fold-search nil))
+          (mapc
+           (lambda ($x)
+             (goto-char (point-min))
+             (while
+                 (search-forward (aref $x 0) nil t)
+               (replace-match (aref $x 1) "FIXEDCASE" "LITERAL")))
+           $strPairs))))))
+
+;;;###autoload
+(defun +eshell|init-keymap ()
+    "Setup eshell keybindings. This must be done in a hook because eshell-mode
+redefines its keys every time `eshell-mode' is enabled."
+    (when (featurep 'evil)
+      (evil-define-key* 'normal eshell-mode-map
+        [return] #'+eshell/goto-end-of-prompt
+        "c" #'+eshell/evil-change
+        "C" #'+eshell/evil-change-line
+        "d" #'+eshell/evil-delete
+        "D" #'+eshell/evil-delete-line
+        "\M-j" #'evil-window-down
+        "\M-k" #'evil-window-up
+        "\M-h" #'evil-window-left
+        "\M-l" #'evil-window-right
+        "\M-d" #'evil-window-vsplit
+        "\M-D" #'evil-window-split)
+      (evil-define-key* 'visual eshell-mode-map
+        "\M-j" #'evil-window-down
+        "\M-k" #'evil-window-up
+        "\M-h" #'evil-window-left
+        "\M-l" #'evil-window-right
+        "\M-d" #'evil-window-vsplit
+        "\M-D" #'evil-window-split)
+      (evil-define-key* 'insert eshell-mode-map
+        [tab] #'+eshell/pcomplete
+        "\C-r" #'counsel-esh-history
+        "\C-j" #'eshell-next-input
+        "\C-k" #'eshell-previous-input
+        "\C-h" #'eshell-previous-matching-input
+        "\C-l" #'eshell-next-matching-input
+        "\C-d" #'+eshell/quit-or-delete-char
+        "\C-p" #'eshell-previous-input
+        "\C-n" #'eshell-next-input
+        "\M-j" #'evil-window-down
+        "\M-k" #'evil-window-up
+        "\M-h" #'evil-window-left
+        "\M-l" #'evil-window-right
+        "\M-d" #'evil-window-vsplit
+        "\M-D" #'evil-window-split))
+    (define-key! eshell-mode-map
+      [remap split-window-below] #'+eshell/split-below
+      [remap split-window-right] #'+eshell/split-right
+      [remap doom/backward-to-bol-or-indent] #'eshell-bol
+      [remap doom/backward-kill-to-bol-and-indent] #'eshell-kill-input
+      [remap evil-window-split] #'+eshell/split-below
+      [remap evil-window-vsplit] #'+eshell/split-right
+      "\M-j" #'evil-window-down
+      "\M-k" #'evil-window-up
+      "\M-h" #'evil-window-left
+      "\M-l" #'evil-window-right
+      "\M-d" #'evil-window-vsplit
+      "\M-D" #'evil-window-split))
+
+;; *** treemacs
+;;;###autoload
+(defun +treemacs/toggle ()
+  "Initialize or toggle treemacs.
+* If the treemacs window is visible hide it.
+* If a treemacs buffer exists, but is not visible show it.
+* If no treemacs buffer exists for the current frame create and show it.
+* If the workspace is empty additionally ask for the root path of the first
+  project to add."
+  (interactive)
+  (require 'treemacs)
+  (-pcase (treemacs--current-visibility)
+    ['visible (delete-window (treemacs--is-visible?))]
+    ['exists  (treemacs-select-window)
+              (set-window-fringes (selected-window) 0 0 nil)]
+    ['none
+     (let ((project-root (doom-project-root 'nocache)))
+       (when project-root
+         (unless (treemacs--find-project-for-path project-root)
+           (treemacs-add-project-at (treemacs--canonical-path project-root)
+                                    (doom-project-name 'nocache))))
+       (treemacs--init project-root))
+     (set-window-fringes (selected-window) 0 0 nil)]))
+
+
